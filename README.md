@@ -61,3 +61,13 @@ python app.py
 2. Upload a **Farsi `.mp3` audio file**.
 3. Click **"Dub Audio to English"**.
 4. The tool will process the file. Once finished, you can play and download the newly synchronized English MP3 right from the UI, and see the exact segment translations.
+
+## Troubleshooting & GPU Acceleration
+
+By default, PyTorch and OpenAI Whisper will attempt to use your GPU (CUDA) to process the audio quickly.
+
+If you are using an older NVIDIA GPU (like the GeForce MX350, with a Compute Capability of `< 7.0`), the default PyTorch binaries will not be able to execute kernels on your device.
+
+**This tool automatically detects this issue** and will print a warning in the console: `"Failed to load model on default device, falling back to CPU"`. It will then safely process the audio using your CPU. However, CPU processing will be significantly slower.
+
+If you want to compile PyTorch from source to support your older GPU architecture (e.g., `sm_61`), please follow the advanced instructions on the [PyTorch Get Started](https://pytorch.org/get-started/locally/) page.
