@@ -1,25 +1,53 @@
 import os
 import wave
 import subprocess
+import urllib.request
 from pydub import AudioSegment
 from piper.voice import PiperVoice
+
+def download_piper_model(model_name):
+    """Automatically downloads Piper TTS models from HuggingFace if they are missing."""
+    os.makedirs("models", exist_ok=True)
+    base_url = f"https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/{model_name.split('-')[1]}/medium/{model_name}"
+
+    onnx_path = os.path.join("models", f"{model_name}.onnx")
+    json_path = os.path.join("models", f"{model_name}.onnx.json")
+
+    if not os.path.exists(onnx_path):
+        print(f"Downloading {model_name}.onnx...")
+        urllib.request.urlretrieve(f"{base_url}.onnx", onnx_path)
+
+    if not os.path.exists(json_path):
+        print(f"Downloading {model_name}.onnx.json...")
+        urllib.request.urlretrieve(f"{base_url}.onnx.json", json_path)
 
 def generate_tts_piper(voice, text, output_path):
     with wave.open(output_path, "wb") as wav_file:
         voice.synthesize_wav(text, wav_file)
 
-def synchronize_audio(segments, output_audio_path, sample_rate=22050):
+def synchronize_audio(segments, output_audio_path, tts_voice_model="en_US-lessac-medium", sample_rate=22050, progress_callback=None):
     # Ensure temporary directory exists
     os.makedirs("temp_audio", exist_ok=True)
 
+    # Auto-download models if missing
+    download_piper_model(tts_voice_model)
+
     # Load Piper model once
-    model_path = os.path.join("models", "en_US-lessac-medium.onnx")
+    if progress_callback:
+        progress_callback(0.5, f"Loading TTS model '{tts_voice_model}'...")
+
+    model_path = os.path.join("models", f"{tts_voice_model}.onnx")
     voice = PiperVoice.load(model_path)
 
     # Start with silence but ensure it has the right sample rate
     final_audio = AudioSegment.silent(duration=0, frame_rate=sample_rate)
 
+    total_segments = len(segments)
     for i, segment in enumerate(segments):
+        if progress_callback:
+            progress_val = 0.5 + (0.5 * (i / total_segments))
+            progress_callback(progress_val, f"Synthesizing segment {i+1} of {total_segments}...")
+
         start = segment["start"] * 1000 # convert to ms
         end = segment["end"] * 1000 # convert to ms
         duration = end - start
