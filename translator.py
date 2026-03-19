@@ -3,7 +3,12 @@ import whisper
 def transcribe_and_translate(audio_path):
     print(f"Loading Whisper model...")
     # Load the base model to be fast enough while providing decent accuracy
-    model = whisper.load_model("base")
+    try:
+        model = whisper.load_model("base")
+    except RuntimeError as e:
+        print(f"Failed to load model on default device, falling back to CPU. Error: {e}")
+        model = whisper.load_model("base", device="cpu")
+
     print(f"Translating audio: {audio_path}")
 
     # transcribe with task="translate" to translate Farsi to English
