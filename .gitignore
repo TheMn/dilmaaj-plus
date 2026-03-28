@@ -1,0 +1,5 @@
+__pycache__
+temp_audio
+models/*.onnx
+*.mp3
+*.wav
